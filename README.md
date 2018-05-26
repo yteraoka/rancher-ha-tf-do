@@ -6,6 +6,7 @@ Building HA Rancher 2.x server on DigitalOcean using Terraform and RKE
 * [Terraform](https://www.terraform.io/) binary ([tfenv](https://github.com/kamatama41/tfenv) recommended)
 * [DigitalOcean](https://www.digitalocean.com/) account and API Token
 * Own your custom domain and register zone in DigitalOcean DNS service
+* [jq](https://stedolan.github.io/jq/) command
 
 ## Usage
 
