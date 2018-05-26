@@ -21,6 +21,15 @@ download_lego(){
 	  fi
 	  rm -f lego.tar.xz
 	  ;;
+      Darwin*)
+          if [ ! -f lego ] ; then
+              curl -Lo lego.zip ${base_url}/v${version}/lego_darwin_amd64.zip
+	      unzip lego_darwin_amd64.zip lego_darwin_amd64
+	      mv lego_darwin_amd64 lego
+	      chmod 755 lego
+	  fi
+	  rm -f lego.zip
+	  ;;
       MINGW64*)
           if [ ! -f lego.exe ] ; then
               curl -Lo lego.zip ${base_url}/v${version}/lego_windows_amd64.zip
@@ -45,6 +54,12 @@ download_rke(){
       "Linux x86_64")
           if [ ! -f rke ] ; then
               curl -Lo rke ${base_url}/v${version}/rke_linux-amd64
+	  fi
+	  chmod 755 rke
+	  ;;
+      Darwin*)
+          if [ ! -f rke ] ; then
+              curl -Lo rke ${base_url}/v${version}/rke_darwin-amd64
 	  fi
 	  chmod 755 rke
 	  ;;
