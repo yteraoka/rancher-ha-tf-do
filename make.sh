@@ -117,7 +117,7 @@ wait_server_boot(){
     until timeout 5 ssh -i id_rsa -o StrictHostKeyChecking=no root@$addr docker ps > /dev/null 2>&1; do
         echo -n "."
         i=$(($i + 1))
-	if [ $i -ge 30 ] ; then
+	if [ $i -ge 60 ] ; then
 	     echo "Given up the connecting to the server" 1>&2
 	     exit 1
 	fi
