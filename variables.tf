@@ -20,3 +20,8 @@ variable "ssh_keys" {
 variable "number_of_node" {
   default = 3
 }
+
+variable "droplet_image" {
+  #default = "ubuntu-16-04-x64"
+  default = "centos-7-x64"
+}

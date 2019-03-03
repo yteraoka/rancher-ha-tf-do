@@ -99,7 +99,7 @@ gen_rke_config() {
     sed -e "1,/<IP>/s/<IP>/$addr0/" \
         -e "1,/<IP>/s/<IP>/$addr1/" \
         -e "1,/<IP>/s/<IP>/$addr2/" \
-        -e "s/<USER>/root/" \
+        -e "s/<USER>/rancher/" \
         -e "s/<PEM_FILE>/id_rsa/" \
         -e "s/<FQDN>/rancher.$DOMAIN_SUFFIX/" \
         -e "s/<BASE64_CRT>/$base64_crt/" \
