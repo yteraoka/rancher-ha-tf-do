@@ -9,32 +9,29 @@ log(){
 download_lego(){
     log Download lego
     local uname=$(uname -s -m)
-    local version=0.4.1
+    local version=2.2.0
     local base_url=https://github.com/xenolf/lego/releases/download
     case "$uname" in
       "Linux x86_64")
           if [ ! -f lego ] ; then
-              curl -Lo lego.tar.xz ${base_url}/v${version}/lego_linux_amd64.tar.xz
-	      tar xf lego.tar.xz lego_linux_amd64
-	      mv lego_linux_amd64 lego
+              curl -Lo lego.tar.xz ${base_url}/v${version}/lego_v${version}_linux_amd64.tar.xz
+	      tar xf lego.tar.xz lego
 	      chmod 755 lego
 	  fi
 	  rm -f lego.tar.xz
 	  ;;
       Darwin*)
           if [ ! -f lego ] ; then
-              curl -Lo lego.zip ${base_url}/v${version}/lego_darwin_amd64.zip
-	      unzip lego_darwin_amd64.zip lego_darwin_amd64
-	      mv lego_darwin_amd64 lego
+              curl -Lo lego.tar.gz ${base_url}/v${version}/lego_v${version}_darwin_amd64.tar.gz
+	      tar xf lego.tar.gz lego
 	      chmod 755 lego
 	  fi
 	  rm -f lego.zip
 	  ;;
       MINGW64*)
           if [ ! -f lego.exe ] ; then
-              curl -Lo lego.zip ${base_url}/v${version}/lego_windows_amd64.zip
-	      unzip lego.zip lego_windows_amd64.exe
-	      mv lego_windows_amd64.exe lego.exe
+              curl -Lo lego.zip ${base_url}/v${version}/lego_v${version}_windows_amd64.zip
+	      unzip lego.zip lego.exe
 	  fi
 	  rm -f lego.zip
 	  ;;
@@ -48,7 +45,7 @@ download_lego(){
 download_rke(){
     log Download rke
     local uname=$(uname -s -m)
-    local version=0.1.7
+    local version=0.1.16
     local base_url=https://github.com/rancher/rke/releases/download
     case "$uname" in
       "Linux x86_64")
