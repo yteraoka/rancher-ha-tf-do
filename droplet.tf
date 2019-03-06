@@ -1,15 +1,12 @@
 resource "digitalocean_droplet" "node" {
   count = "${var.number_of_node}"
-  image = "ubuntu-16-04-x64"
+  image = "${var.droplet_image}"
   name = "rke-${count.index}"
   region = "${var.region}"
   size = "s-1vcpu-2gb"
   ssh_keys = ["${digitalocean_ssh_key.key.id}"]
   monitoring = true
-  user_data = <<EOF
-#!/bin/bash
-curl https://releases.rancher.com/install-docker/17.03.sh | sh
-EOF
+  user_data = "${file("userdata.sh")}"
 }
 
 resource "digitalocean_record" "rancher" {
