@@ -1,0 +1,19 @@
+nodes:
+  - address: <IP> # hostname or IP to access nodes
+    user: <USER> # root user (usually 'root')
+    ssh_key_path: id_rsa
+    role: [controlplane,etcd,worker] # K8s roles for node
+  - address: <IP>
+    user: <USER>
+    ssh_key_path: id_rsa
+    role: [controlplane,etcd,worker]
+  - address: <IP>
+    user: <USER>
+    ssh_key_path: id_rsa
+    role: [controlplane,etcd,worker]
+
+services:
+  etcd:
+    snapshot: true
+    creation: 6h
+    retention: 24h

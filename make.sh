@@ -72,25 +72,91 @@ download_rke(){
 }
 
 
-get_cert(){
+download_helm(){
+    log Download helm
+    local uname=$(uname -s -m)
+    local version=2.13.1
+    local base_url=https://storage.googleapis.com/kubernetes-helm
+    case "$uname" in
+      "Linux x86_64")
+          if [ ! -f helm ] ; then
+              curl -Lo heml.tar.gz ${base_url}/helm-v${version}-linux-amd64.tar.gz
+	      tar --strip-components=1 -xf helm.tar.gz linux-amd64/helm
+	      chmod 755 helm
+	  fi
+	  rm -f helm.tar.xz
+	  ;;
+      Darwin*)
+          if [ ! -f helm ] ; then
+	      curl -Lo helm.tar.gz ${base_url}/helm-v${version}-darwin-amd64.tar.gz
+	      tar --strip-components=1 -xf helm.tar.gz darwin-amd64/helm
+	      chmod 755 helm
+	  fi
+	  rm -f helm.tar.xz
+	  ;;
+      MINGW64*)
+          if [ ! -f helm.exe ] ; then
+	      curl -Lo helm.zip ${base_url}/helm-v${version}-windows-amd64.zip
+	      unzip -j helm.zip windows-amd64/helm.exe
+	  fi
+	  rm -f helm.zip
+	  ;;
+      *)
+          echo "Unsupported platform $uname" 1>&2
+	  exit 1
+    esac
+}
+
+
+download_kubectl(){
+    log Download kubectl
+    local uname=$(uname -s -m)
+    local version=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+    local base_url=https://storage.googleapis.com/kubernetes-release/release
+    case "$uname" in
+      "Linux x86_64")
+          if [ ! -f kubectl ] ; then
+              curl -Lo kubectl ${base_url}/${version}/bin/linux/amd64/kubectl
+	      chmod 755 kubectl
+	  fi
+	  ;;
+      Darwin*)
+          if [ ! -f kubectl ] ; then
+              curl -Lo kubectl ${base_url}/${version}/bin/darwin/amd64/kubectl
+	      chmod 755 kubectl
+	  fi
+	  ;;
+      MINGW64*)
+          if [ ! -f kubectl.exe ] ; then
+	      curl -Lo kubectl.exe ${base_url}/bin/windows/amd64/kubectl.exe
+	  fi
+	  ;;
+      *)
+          echo "Unsupported platform $uname" 1>&2
+	  exit 1
+    esac
+}
+
+download_all(){
     download_lego
+    download_rke
+    download_kubectl
+    download_helm
+}
+
+
+get_cert(){
     if [ ! -f .lego/certificates/rancher.${DOMAIN_SUFFIX}.crt ] ; then
         log Get certificate
         export DO_AUTH_TOKEN=$DIGITALOCEAN_TOKEN
         ./lego --domains rancher.${DOMAIN_SUFFIX} --email $CERT_EMAIL --accept-tos --dns digitalocean run
     fi
+    cat .lego/certificates/rancher.${DOMAIN_SUFFIX}.crt .lego/certificates/rancher.${DOMAIN_SUFFIX}.issuer.crt > .lego/certificates/rancher.${DOMAIN_SUFFIX}.bundle
 }
 
 
 gen_rke_config() {
     log Generate rke.yml
-
-    cat .lego/certificates/rancher.${DOMAIN_SUFFIX}.crt .lego/certificates/rancher.${DOMAIN_SUFFIX}.issuer.crt > .lego/certificates/rancher.${DOMAIN_SUFFIX}.bundle
-    base64_crt=$(base64 -w 0 .lego/certificates/rancher.${DOMAIN_SUFFIX}.bundle)
-    base64_key=$(base64 -w 0 .lego/certificates/rancher.${DOMAIN_SUFFIX}.key)
-
-    curl -sLo 3-node-certificate-recognizedca.yml \
-      https://raw.githubusercontent.com/rancher/rancher/master/rke-templates/3-node-certificate-recognizedca.yml
 
     addr0=$(terraform output -json | jq -r .node0_address.value)
     addr1=$(terraform output -json | jq -r .node1_address.value)
@@ -100,11 +166,7 @@ gen_rke_config() {
         -e "1,/<IP>/s/<IP>/$addr1/" \
         -e "1,/<IP>/s/<IP>/$addr2/" \
         -e "s/<USER>/rancher/" \
-        -e "s/<PEM_FILE>/id_rsa/" \
-        -e "s/<FQDN>/rancher.$DOMAIN_SUFFIX/" \
-        -e "s/<BASE64_CRT>/$base64_crt/" \
-        -e "s/<BASE64_KEY>/$base64_key/" \
-       3-node-certificate-recognizedca.yml > rke.yml
+       rancher-cluster.yml.tmpl > rancher-cluster.yml
 }
 
 wait_server_boot(){
@@ -122,8 +184,20 @@ wait_server_boot(){
     echo
 }
 
+setup_tfenv(){
+    if [ ! -d ~/.tfenv ] ; then
+        git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+	echo 'PATH=~/.tfenv/bin:$PATH' >> ~/.bash_profile
+    fi
+    echo $PATH | grep -q tfenv
+    if [ $? -ne 0 ] ; then
+	PATH=~/.tfenv/bin:$PATH
+    fi
+    tfenv install
+}
+
 cleanup(){
-    rm -f rke* lego* *.yml
+    rm -f rke* lego* kubectl* helm* *.yml
     rm -fr .lego
 }
 
@@ -155,6 +229,8 @@ fi
 case "$1" in
   # apply
   a*|u*)
+      download_all
+      setup_tfenv
       terraform plan \
         -var domain_suffix=$DOMAIN_SUFFIX \
 	-out tf.plan
@@ -162,9 +238,25 @@ case "$1" in
       wait_server_boot
       get_cert
       gen_rke_config
-      download_rke
       log rke up
-      ./rke up --config rke.yml
+      ./rke up --config rancher-cluster.yml
+      export KUBECONFIG=./kube_config_rancher-cluster.yml
+      ./kubectl get nodes
+      ./kubectl -n kube-system create serviceaccount tiller
+      ./kubectl create clusterrolebinding tiller \
+        --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+      ./helm init --service-account tiller
+      ./kubectl -n kube-system  rollout status deploy/tiller-deploy
+      ./helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+      ./helm install rancher-latest/rancher \
+        --name rancher \
+        --namespace cattle-system \
+        --set hostname=rancher.${DOMAIN_SUFFIX} \
+        --set ingress.tls.source=secret
+      ./kubectl -n cattle-system create secret tls tls-rancher-ingress \
+        --cert=.lego/certificates/rancher.${DOMAIN_SUFFIX}.bundle \
+	--key=.lego/certificates/rancher.${DOMAIN_SUFFIX}.key
+      ./kubectl -n cattle-system rollout status deploy/rancher
       echo
       echo "Try open https://rancher.${DOMAIN_SUFFIX}/"
       echo
