@@ -166,7 +166,7 @@ gen_rke_config() {
         -e "1,/<IP>/s/<IP>/$addr1/" \
         -e "1,/<IP>/s/<IP>/$addr2/" \
         -e "s/<USER>/rancher/" \
-       rancher-cluster.yml.tmpl > rancher-cluster.yml
+       rke.yml.tmpl > rke.yml
 }
 
 wait_server_boot(){
@@ -239,8 +239,8 @@ case "$1" in
       get_cert
       gen_rke_config
       log rke up
-      ./rke up --config rancher-cluster.yml
-      export KUBECONFIG=./kube_config_rancher-cluster.yml
+      ./rke up --config rke.yml
+      export KUBECONFIG=./kube_config_rke.yml
       ./kubectl get nodes
       ./kubectl -n kube-system create serviceaccount tiller
       ./kubectl create clusterrolebinding tiller \
