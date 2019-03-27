@@ -27,8 +27,8 @@ export CERT_EMAIL=user@example.com # for Let's Encrypt
 
 Then open https://rancher.${DOMAIN_SUFFIX}/
 
-`rke` creates `kube_config_rancher-cluster.yml`.
-If you want to access k8s using kubectl copy it to `~/.kube/config` or set environment variable `KUBECONFIG=kube_config_rancher-cluster.yml`.
+`rke` creates `kube_config_rke.yml`.
+If you want to access k8s using kubectl copy it to `~/.kube/config` or set environment variable `KUBECONFIG=kube_config_rke.yml`.
 
 ### Destroy cluster
 
